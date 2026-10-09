@@ -30,19 +30,6 @@ body {
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
-  position: relative;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 40%);
-  z-index: -1;
-  pointer-events: none;
 }
 
 .topbar {
@@ -137,8 +124,7 @@ body::before {
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
-  position: relative;
-  z-index: 1;
+  min-height: 100vh;
 }
 
 .sidebar {
@@ -202,8 +188,6 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 28px;
-  position: relative;
-  z-index: 0;
 }
 
 .hero {
