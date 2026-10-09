@@ -59,10 +59,10 @@ const games = [
 
 const gamesGrid = document.getElementById('gamesGrid');
 const searchInput = document.getElementById('searchInput');
-const filterTags = document.querySelectorAll('.tag');
+const categoryBtns = document.querySelectorAll('.category-btn');
 const noResults = document.getElementById('noResults');
 
-let currentGenreFilter = 'all';
+let currentGenre = 'all';
 
 function getGenreLabel(genre) {
   const labels = {
@@ -74,7 +74,7 @@ function getGenreLabel(genre) {
 
 function createGameCard(game) {
   return `
-    <a href="${game.path}" class="game-card" aria-label="${game.title}をプレイ">
+    <a href="${game.path}" class="game-card" target="_blank" rel="noopener noreferrer" aria-label="${game.title}をプレイ">
       <div class="game-thumbnail">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="${game.icon}" fill="currentColor"></path>
@@ -96,39 +96,37 @@ function createGameCard(game) {
   `;
 }
 
-function displayGames(items) {
-  if (!items.length) {
-    gamesGrid.innerHTML = '';
-    noResults.style.display = 'flex';
-    return;
-  }
-
-  gamesGrid.innerHTML = items.map(createGameCard).join('');
-  noResults.style.display = 'none';
-}
-
-function filterGames() {
+function filterAndDisplayGames() {
   const searchTerm = searchInput.value.trim().toLowerCase();
 
   const filtered = games.filter((game) => {
-    const matchesSearch = game.title.toLowerCase().includes(searchTerm) ||
+    const matchesSearch =
+      game.title.toLowerCase().includes(searchTerm) ||
       getGenreLabel(game.genre).includes(searchTerm);
-    const matchesGenre = currentGenreFilter === 'all' || game.genre === currentGenreFilter;
+
+    const matchesGenre = currentGenre === 'all' || game.genre === currentGenre;
+
     return matchesSearch && matchesGenre;
   });
 
-  displayGames(filtered);
+  if (filtered.length === 0) {
+    gamesGrid.innerHTML = '';
+    noResults.style.display = 'flex';
+  } else {
+    gamesGrid.innerHTML = filtered.map(createGameCard).join('');
+    noResults.style.display = 'none';
+  }
 }
 
-searchInput.addEventListener('input', filterGames);
+searchInput.addEventListener('input', filterAndDisplayGames);
 
-filterTags.forEach((tag) => {
-  tag.addEventListener('click', () => {
-    filterTags.forEach((item) => item.classList.remove('active'));
-    tag.classList.add('active');
-    currentGenreFilter = tag.dataset.genre;
-    filterGames();
+categoryBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    categoryBtns.forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentGenre = btn.dataset.genre;
+    filterAndDisplayGames();
   });
 });
 
-displayGames(games);
+filterAndDisplayGames();
