@@ -1,0 +1,1118 @@
+<html lang="ja">
+  <head>
+    <base href="https://cdn.jsdelivr.net/gh/genizy/google-class@main/brawl-3d/" />
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      canvas:focus {
+            outline: none;
+        }
+
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+            height: 100%;
+        }
+        #loading-text {
+  font-weight: bold;
+  background: linear-gradient(
+    270deg,
+    #ff0000,
+    #ff7f00,
+    #ffff00,
+    #00ff00,
+    #0000ff,
+    #4b0082,
+    #8f00ff
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rainbow 3s ease infinite;
+}
+
+@keyframes rainbow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+    </style>
+    <!-- Additional head modules -->
+  </head>
+  <body class="dark">
+    <div id="loading-text" style="color: white; font-size: 48px; font-family: cursive; text-align: center; margin-top: 20px;">
+      LOADING...
+    </div>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" tabindex="-1">
+      </canvas>
+    </div>
+    <div id="loading-cover" style="display:none;">
+      <div id="unity-loading-bar">
+        <div id="unity-logo">
+          <img src="Images/logo.png" />
+        </div>
+        <div id="unity-progress-bar-empty" style="display: none;">
+          <div id="unity-progress-bar-full">
+          </div>
+        </div>
+        <div class="spinner">
+        </div>
+      </div>
+    </div>
+    <!-- Additional body modules -->
+    <script>
+      var loadingText = document.querySelector(&#34;#loading-text&#34;);
+    let totalBytes = 0;
+    let loadedBytes = 0;
+
+    async function fetchWithProgress(url) {
+      const response = await fetch(url);
+      const reader = response.body.getReader();
+      let chunks = [];
+      let received = 0;
+      while (true) {
+        const {
+          done,
+          value
+        } = await reader.read();
+        if (done) break;
+        received += value.length;
+        loadedBytes += value.length;
+        chunks.push(value);
+        let mbDone = (loadedBytes / (1024 * 1024)).toFixed(2);
+        let mbTotal = &#39;101.82&#39;;
+        loadingText.textContent = `LOADING... ${mbDone} MB / ${mbTotal} MB`;
+      }
+      let fullBuffer = new Uint8Array(received);
+      let offset = 0;
+      for (let chunk of chunks) {
+        fullBuffer.set(chunk, offset);
+        offset += chunk.length;
+      }
+      return fullBuffer.buffer;
+    }
+
+    async function mergeFiles(fileParts, cacheKey) {
+      const buffers = await Promise.all(
+        fileParts.map(part =&gt; fetchWithProgress(part))
+      );
+      const mergedBlob = new Blob(buffers);
+      return URL.createObjectURL(mergedBlob);
+    }
+
+    function getParts(file, start, end) {
+      let parts = [];
+      for (let i = start; i &lt;= end; i++) {
+        parts.push(file + &#34;.part&#34; + i);
+      }
+      return parts;
+    }
+    (async () =&gt; {
+      const [wasmUrl, dataUrl] = await Promise.all([
+        mergeFiles(getParts(&#34;Build/brawl.wasm&#34;, 1, 4), &#34;brawl.wasm&#34;),
+        mergeFiles(getParts(&#34;Build/brawl.data&#34;, 1, 2), &#34;brawl.data&#34;),
+      ]);
+        const hideFullScreenButton = &#34;&#34;;
+        const buildUrl = &#34;Build&#34;;
+        const loaderUrl = buildUrl + &#34;/brawl.loader.js&#34;;
+        const config = {
+            dataUrl: dataUrl,
+            frameworkUrl: buildUrl + &#34;/brawl.framework.js&#34;,
+            codeUrl: wasmUrl,
+        streamingAssetsUrl: &#34;StreamingAssets&#34;,
+            companyName: &#34;Fire Games&#34;,
+            productName: &#34;Brawl 2018&#34;,
+            productVersion: &#34;1.07&#34;
+        };
+
+        const container = document.querySelector(&#34;#unity-container&#34;);
+        const canvas = document.querySelector(&#34;#unity-canvas&#34;);
+        const loadingCover = document.querySelector(&#34;#loading-cover&#34;);
+        const progressBarEmpty = document.querySelector(&#34;#unity-progress-bar-empty&#34;);
+        const progressBarFull = document.querySelector(&#34;#unity-progress-bar-full&#34;);
+        const spinner = document.querySelector(&#39;.spinner&#39;);
+
+        const canFullscreen = (function () {
+            for (const key of [
+                &#39;exitFullscreen&#39;,
+                &#39;webkitExitFullscreen&#39;,
+                &#39;webkitCancelFullScreen&#39;,
+                &#39;mozCancelFullScreen&#39;,
+                &#39;msExitFullscreen&#39;,
+            ]) {
+                if (key in document) {
+                    return true;
+                }
+            }
+            return false;
+        }());
+
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            container.className = &#34;unity-mobile&#34;;
+            
+        }
+
+        // The background image when loading the game. When building a build, the code changes depending on the project settings.
+        
+        loadingCover.style.display = &#34;&#34;;
+
+        window.StartUnityInstance;
+        window.ygGameInstance = null;
+        window.ysdk = null;
+        window.initYSDK = false;
+        window.initGame = false;
+        window.syncInit = false;
+        window.isVisibility = true;
+        window.isPausedGame = false;
+        window.NO_DATA = &#39;no data&#39;;
+
+        document.addEventListener(&#39;contextmenu&#39;, event =&gt; event.preventDefault());
+        document.addEventListener(&#39;visibilitychange&#39;, () =&gt; SetVisibility(!document.hidden));
+        window.addEventListener(&#39;blur&#39;, () =&gt; SetVisibility(false));
+        window.addEventListener(&#39;focus&#39;, () =&gt; SetVisibility(true));
+
+
+        window.addEventListener(&#39;pointerdown&#39;, () =&gt; {
+            FocusGame();
+            SetVisibility(true);
+        });
+
+        const oRequestPointerLock = Element.prototype.requestPointerLock;
+        Element.prototype.requestPointerLock = async function hkRequestPointerLock(...args) {
+            try {
+                (args[0] ||= {}).unadjustedMovement = true;
+                await oRequestPointerLock.apply(this, args);
+            } catch (err) {
+                console.log(err);
+            }
+        };
+
+        window.InstallBlurFocusBlocker = function() {
+            if (!(&#39;onblur&#39; in document)) return;
+            if (window.blurFocusHandlersInstalled) return;
+
+            window.addEventListener(&#39;blur&#39;, function () {
+                let blockerButton = document.createElement(&#39;button&#39;);
+                blockerButton.style.position = &#39;fixed&#39;;
+                blockerButton.style.top = &#39;0&#39;;
+                blockerButton.style.left = &#39;0&#39;;
+                blockerButton.style.width = &#39;100%&#39;;
+                blockerButton.style.height = &#39;100%&#39;;
+                blockerButton.style.zIndex = &#39;9999&#39;;
+                blockerButton.style.backgroundColor = &#39;rgba(0, 0, 0, 0)&#39;;
+                blockerButton.style.border = &#39;none&#39;;
+                blockerButton.style.cursor = &#39;default&#39;;
+
+                document.body.appendChild(blockerButton);
+
+                function removeBlocker() {
+                    if (blockerButton &amp;&amp; blockerButton.parentNode) {
+                        blockerButton.parentNode.removeChild(blockerButton);
+                    }
+                    window.removeEventListener(&#39;focus&#39;, removeBlocker);
+                }
+
+                window.addEventListener(&#39;focus&#39;, removeBlocker);
+            });
+
+            window.blurFocusHandlersInstalled = true;
+        }
+
+        window.FocusGame = function() {
+            if (!isPausedGame) canvas.focus();
+        }
+
+        window.SetVisibility = function(visibility) {
+            if (ysdk !== null &amp;&amp; initGame === true &amp;&amp; isVisibility !== visibility) {
+                isVisibility = visibility;
+                if (!visibility) {
+                    YG2Instance(&#39;SetFocusWindowGame&#39;, &#39;false&#39;);
+                }
+                else {
+                    YG2Instance(&#39;SetFocusWindowGame&#39;, &#39;true&#39;);
+                }
+            }
+        }
+
+        const PauseCallback = () =&gt; {
+            isPausedGame = true;
+            YG2Instance(&#39;SetPauseGame&#39;, &#39;true&#39;);
+        };
+
+        const ResumeCallback = () =&gt; {
+            isPausedGame = false;
+            YG2Instance(&#39;SetPauseGame&#39;, &#39;false&#39;);
+        };
+
+        const script = document.createElement(&#34;script&#34;);
+        script.src = loaderUrl;
+        script.onload = () =&gt; {
+            StartUnityInstance = function () {
+                createUnityInstance(canvas, config, (progress) =&gt; {
+                    spinner.style.display = &#34;none&#34;;
+                    progressBarEmpty.style.display = &#34;&#34;;
+                    const adjustedProgress = Math.max(progress, 0.05);
+                    progressBarFull.style.width = `${100 * adjustedProgress}%`;
+                }).then((unityInstance) =&gt; {
+                    ygGameInstance = unityInstance;
+                    loadingCover.style.background = &#34;&#34;;
+                    loadingCover.style.display = &#34;none&#34;;
+                    // Fill Background [Build Modify]
+                }).catch((message) =&gt; {
+                    console.error(message);
+                });
+            };
+            
+            InstallBlurFocusBlocker();
+            InitYSDK();
+            
+            if (IsLocalHost() || syncInit)
+                StartUnityInstance_IfUnloaded();
+        };
+
+        window.StartUnityInstance_IfUnloaded = function() {
+            if (spinner.style.display !== &#34;none&#34;)
+                StartUnityInstance();
+        }
+
+        window.IsLocalHost = function() {
+            try {
+                if (window.top !== window) {
+                    return false;
+                }
+
+                const host = window.location.hostname;
+                if (host === &#34;localhost&#34; || host === &#34;127.0.0.1&#34; || host.endsWith(&#34;.local&#34;)) {
+                    LogStyledMessage(&#34;Local Host&#34;);
+                    return true;
+                }
+            } 
+            catch (error) {
+                console.error(&#34;Error checking the local host:&#34;, error);
+                return false;
+            }
+        }
+
+        window.YG2Instance = function(method) {
+            if (ygGameInstance == null)
+                return;
+
+            if (!initGame) {
+                setTimeout(function () {
+                    if (ygGameInstance)
+                        ygGameInstance.SendMessage(&#39;YG2Instance&#39;, method);
+                }, 100);
+            }
+            else {
+                ygGameInstance.SendMessage(&#39;YG2Instance&#39;, method);
+            }
+                
+        }
+        window.YG2Instance = function(method, arg) {
+            if (ygGameInstance == null)
+                return;
+
+            if (!initGame) {
+                setTimeout(function () {
+                    ygGameInstance.SendMessage(&#39;YG2Instance&#39;, method, arg);
+                }, 100);
+            }
+            else {
+                ygGameInstance.SendMessage(&#39;YG2Instance&#39;, method, arg);
+            }
+        }
+
+        window.LogStyledMessage  = function (message, style) {
+            console.log(&#39;%c&#39; + message, style || &#39;color: #FFDF73; background-color: #454545&#39;);
+        }
+        
+        window.InitYSDK = async function () {
+            try {
+                if (IsLocalHost()) return;
+
+                ysdk.on(&#39;game_api_pause&#39;, PauseCallback);
+                ysdk.on(&#39;game_api_resume&#39;, ResumeCallback);
+
+                // Additional init0 modules
+await RequestingEnvironmentData();
+LogStyledMessage(&#39;Init EnvirData ysdk&#39;);
+
+
+                // Additional init1 modules
+
+                // Additional init2 modules
+await InitPlayer();
+LogStyledMessage(&#39;Init Authorization ysdk&#39;);
+
+
+                // Additional init modules
+await LoadCloud();
+LogStyledMessage(&#39;Init Storage ysdk&#39;);
+
+await InitReview();
+LogStyledMessage(&#39;Init Review ysdk&#39;);
+
+await GetStats();
+LogStyledMessage(&#39;Init PlayerStats ysdk&#39;);
+
+await InitPayments();
+LogStyledMessage(&#39;Init Payments ysdk&#39;);
+
+await GetAllGames();
+LogStyledMessage(&#39;Init OpenURL ysdk&#39;);
+
+await InitGameLabel();
+LogStyledMessage(&#39;Init GameLabel ysdk&#39;);
+
+
+                initYSDK = true;
+                if (ygGameInstance != null)
+                    ygGameInstance.SendMessage(&#39;YG2Instance&#39;, &#39;InitSDKComplete&#39;);
+
+                LogStyledMessage(&#39;Init YandexSDK Success&#39;);
+
+            } catch (e) {
+                console.error(&#39;CRASH Initialization SDK: &#39;, e);
+            }
+
+            if (!IsLocalHost() &amp;&amp; !syncInit)
+                StartUnityInstance_IfUnloaded();
+        }
+
+window.InitGame = function() {
+    loadingText.remove();
+        initGame = true;
+
+        ygGameInstance.SendMessage(
+          &#34;YG2Instance&#34;,
+          &#34;SetEnvirData&#34;,
+          JSON.stringify({
+            language: &#34;en&#34;,
+            domain: &#34;com&#34;,
+            deviceType: &#34;desktop&#34;,
+            isMobile: false,
+            isDesktop: true,
+            isTablet: false,
+            isTV: false,
+            appID: &#34;local&#34;,
+            browserLang: &#34;en&#34;,
+            payload: null,
+            platform: navigator.platform,
+            browser: &#34;Chrome&#34;,
+          }),
+        );
+        ygGameInstance.SendMessage(
+          &#34;YG2Instance&#34;,
+          &#34;SetAuth&#34;,
+          JSON.stringify({
+            playerAuth: &#34;resolved&#34;,
+            playerName: &#34;Player&#34;,
+            playerId: &#34;local_player&#34;,
+            playerPhoto: &#34;no data&#34;,
+            payingStatus: &#34;unknown&#34;,
+          }),
+        );
+        ygGameInstance.SendMessage(&#34;YG2Instance&#34;, &#34;SetLoadSaves&#34;, &#34;no data&#34;);
+        ygGameInstance.SendMessage(&#34;YG2Instance&#34;, &#34;InitSDKComplete&#34;);
+
+        setTimeout(function () {
+          if (isPausedGame == true) YG2Instance(&#34;SetPauseGame&#34;, &#34;true&#34;);
+        }, 100);
+}
+
+        // Additional script modules
+LogStyledMessage(&#39;[PluginYG2 v2.008] [Build: 40] [Platform: YandexGames]&#39;);
+
+window.cloudSaves = NO_DATA;
+
+window.SaveCloud = function(jsonData, flush) {
+    if (player == null) {
+        console.error(&#39;CRASH Save Cloud: &#39;, &#39;Didnt have time to load&#39;);
+        return;
+    }
+    try {
+        player.setData({
+            saves: [jsonData],
+        }, flush);
+    } catch (e) {
+        console.error(&#39;CRASH Save Cloud: &#39;, e.message);
+    }
+}
+
+window.LoadCloud = function() {
+    return new Promise((resolve) =&gt; {
+        if (ysdk == null) {
+            Final(window.NO_DATA);
+            return;
+        }
+        try {
+            player.getData([&#34;saves&#34;]).then(data =&gt; {
+                if (data.saves) {
+                    Final(JSON.stringify(data.saves));
+                } else {
+                    Final(NO_DATA);
+                }
+            }).catch(() =&gt; {
+                console.error(&#39;Load Cloud Error!&#39;);
+                Final(NO_DATA);
+            });
+        }
+        catch (e) {
+            console.error(&#39;CRASH Load saves Cloud: &#39;, e.message);
+            Final(NO_DATA);
+        }
+
+        function Final(res) {
+            cloudSaves = res;
+            YG2Instance(&#39;SetLoadSaves&#39;, res);
+            resolve(res);
+        }
+    });
+}
+
+
+window.StickyAdActivity = function(show) {
+    try {
+        ysdk.adv.getBannerAdvStatus().then(({ stickyAdvIsShowing, reason }) =&gt; {
+            if (stickyAdvIsShowing) {
+                if (!show) {
+                    ysdk.adv.hideBannerAdv();
+                }
+            }
+            else if (reason) {
+                LogStyledMessage(&#39;StickyAdv are not shown. Reason:&#39;, reason);
+            }
+            else if (show) {
+                ysdk.adv.showBannerAdv();
+            }
+        })
+    } catch (e) {
+        console.error(&#39;CRASH StickyAdv activity: &#39;, e.message);
+    }
+}
+
+
+window.RewardedAdvShow = function(id) {
+    try {
+        ysdk.adv.showRewardedVideo(
+            {
+                callbacks:
+                {
+                    onOpen: () =&gt; {
+                        LogStyledMessage(&#39;Opened Rewarded Adv&#39;);
+                        YG2Instance(&#39;OpenRewardedAdv&#39;);
+                    },
+                    onClose: () =&gt; {
+                        LogStyledMessage(&#39;Closed Rewarded Adv&#39;);
+                        YG2Instance(&#39;CloseRewardedAdv&#39;);
+                        FocusGame();
+                    },
+                    onRewarded: () =&gt; {
+                        YG2Instance(&#39;RewardAdv&#39;, id);
+                    },
+                    onError: (err) =&gt; {
+                        console.error(&#39;Error Rewarded Adv&#39;, err);
+                        YG2Instance(&#39;ErrorRewardedAdv&#39;);
+                    }
+                }
+            });
+    } catch (err) {
+        console.error(&#39;CRASH Rewarded Adv Show: &#39;, err.message);
+    }
+}
+
+window.reviewData = &#39;false&#39;;
+
+window.InitReview = function() {
+    return new Promise((resolve) =&gt; {
+        if (ysdk == null) {
+            resolve(&#39;false&#39;);
+            return;
+        }
+        try {
+            ysdk.feedback.canReview().then(({ value }) =&gt; {
+                if (value) {
+                    reviewData = &#39;true&#39;;
+                    resolve(&#39;true&#39;);
+                }
+                else {
+                    resolve(&#39;false&#39;);
+                }
+            });
+        }
+        catch (e) {
+            console.error(&#39;CRASH Init Review: &#39;, e.message);
+            resolve(&#39;false&#39;);
+        }
+    });
+}
+
+window.Review = function() {
+    try {
+        ysdk.feedback.canReview()
+            .then(({ value, reason }) =&gt; {
+                if (value) {
+                    ysdk.feedback.requestReview().then(({ feedbackSent }) =&gt; {
+                        LogStyledMessage(&#39;feedbackSent &#39;, feedbackSent);
+                        if (feedbackSent) {
+                            LogStyledMessage(&#39;Review Success&#39;)
+                            YG2Instance(&#39;ReviewSent&#39;, &#39;true&#39;);
+                        }
+                        else {
+                            YG2Instance(&#39;ReviewSent&#39;, &#39;false&#39;);
+                            LogStyledMessage(&#39;Review Fail&#39;, reason)
+                        }
+                        FocusGame();
+                    })
+                }
+                else {
+                    LogStyledMessage(&#39;Review can show = false&#39;, reason);
+                    FocusGame();
+                }
+            })
+    } catch (e) {
+        console.error(&#39;CRASH Review: &#39;, e.message);
+        FocusGame();
+    }
+}
+
+
+window.statsSaves = NO_DATA;
+
+window.GetStats = function() {
+    return new Promise((resolve) =&gt; {
+        if (ysdk == null) {
+            Final(NO_DATA);
+            return;
+        }
+        try {
+            player.getStats()
+                .then(stats =&gt; {
+                    Final(JSON.stringify(stats));
+                }).catch(e =&gt; {
+                    console.error(&#39;GetStats Error!&#39;, e.message);
+                    Final(NO_DATA);
+                });
+        }
+        catch (e) {
+            console.error(&#39;CRASH GetStats: &#39;, e.message);
+            Final(NO_DATA);
+        }
+
+        function Final(res) {
+            statsSaves = res;
+            YG2Instance(&#39;ReceiveStats&#39;, res);
+            resolve(res);
+        }
+    });
+}
+
+window.SetStats = function(jsonStats) {
+    if (ysdk == null || player == null) {
+        console.error(&#39;SetStats: Error initialization&#39;);
+        return;
+    }
+    try {
+        player.setStats(JSON.parse(jsonStats));
+    } catch (e) {
+        console.error(&#39;CRASH SetStats:&#39;, e.message);
+    }
+}
+
+window.paymentsData = NO_DATA;
+let payments = null;
+
+window.InitPayments = function(sendback) {
+    return new Promise((resolve) =&gt; {
+        try {
+            if (ysdk == null) {
+                Final(NO_DATA);
+                return;
+            }
+
+            ysdk.getPayments().then(_payments =&gt; {
+                payments = _payments;
+
+                payments.getCatalog()
+                    .then(products =&gt; {
+                        let productID = [];
+                        let title = [];
+                        let description = [];
+                        let imageURI = [];
+                        let price = [];
+                        let priceValue = [];
+                        let priceCurrencyCode = [];
+                        let currencyImageURL = [];
+                        let consumed = [];
+
+                        payments.getPurchases().then(purchases =&gt; {
+                            for (let i = 0; i &lt; products.length; i++) {
+                                productID[i] = products[i].id;
+                                title[i] = products[i].title;
+                                description[i] = products[i].description;
+                                imageURI[i] = products[i].imageURI;
+                                price[i] = products[i].price;
+                                priceValue[i] = products[i].priceValue;
+                                priceCurrencyCode[i] = products[i].priceCurrencyCode;
+                                currencyImageURL[i] = products[i].getPriceCurrencyImage(&#34;medium&#34;);
+
+                                consumed[i] = true;
+                                for (i2 = 0; i2 &lt; purchases.length; i2++) {
+                                    if (purchases[i2].productID === productID[i]) {
+                                        consumed[i] = false;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            let jsonPayments = {
+                                &#34;id&#34;: productID,
+                                &#34;title&#34;: title,
+                                &#34;description&#34;: description,
+                                &#34;imageURI&#34;: imageURI,
+                                &#34;price&#34;: price,
+                                &#34;priceValue&#34;: priceValue,
+                                &#34;priceCurrencyCode&#34;: priceCurrencyCode,
+                                &#34;currencyImageURL&#34;: currencyImageURL,
+                                &#34;consumed&#34;: consumed,
+                                &#34;language&#34;: &#34;en&#34;
+                            };
+
+                            Final(JSON.stringify(jsonPayments));
+                        });
+                    });
+
+            }).catch(e =&gt; {
+                LogStyledMessage(&#39;Purchases are not available&#39;, e.message);
+                Final(NO_DATA);
+            })
+        } catch (e) {
+            console.error(&#39;CRASH Init Payments: &#39;, e.message);
+            Final(NO_DATA);
+        }
+
+        function Final(res) {
+            paymentsData = res;
+            YG2Instance(&#39;PaymentsEntries&#39;, res);
+            resolve(res);
+        }
+    });
+}
+
+window.BuyPayments = function(id) {
+    try {
+        LogStyledMessage(&#39;Purchase Success&#39;);
+        ConsumePurchase(id, true);
+        FocusGame();
+    } catch (e) {
+        console.error(&#39;CRASH Buy Payments: &#39;, e.message);
+        YG2Instance(&#39;OnPurchaseFailed&#39;, id);
+        FocusGame();
+    }
+}
+
+window.ConsumePurchase = function(id, onPurchaseSuccess) {
+    try {
+        YG2Instance(&#39;OnPurchaseSuccess&#39;, id);
+    } catch (e) {
+        console.error(&#39;CRASH Consume Purchase: &#39;, e.message);
+    }
+}
+
+window.ConsumePurchases = function(onPurchaseSuccess) {
+    try {
+        YG2Instance(&#39;OnPurchaseSuccess&#39;, purchases[i].productID);
+    } catch (e) {
+        console.error(&#39;CRASH Consume purchases: &#39;, e.message);
+    }
+}
+
+window.allGamesData = NO_DATA;
+
+window.GetAllGames = function() {
+    return new Promise((resolve) =&gt; {
+        if (ysdk == null) {
+            Final(NO_DATA);
+            return;
+        }
+        try {
+            ysdk.features.GamesAPI.getAllGames().then(({ games, developerURL }) =&gt; {
+                let appID = new Array(games);
+                let title = new Array(games);
+                let url = new Array(games);
+                let coverURL = new Array(games);
+                let iconURL = new Array(games);
+
+                for (var i = 0; i &lt; games.length; i++) {
+                    appID[i] = games[i].appID;
+                    title[i] = games[i].title;
+                    url[i] = games[i].url;
+                    coverURL[i] = games[i].coverURL;
+                    iconURL[i] = games[i].iconURL;
+                }
+
+                let jsonGames = {
+                    &#34;appID&#34;: appID,
+                    &#34;title&#34;: title,
+                    &#34;url&#34;: url,
+                    &#34;coverURL&#34;: coverURL,
+                    &#34;iconURL&#34;: iconURL,
+                    &#34;developerURL&#34;: developerURL
+                };
+
+                Final(JSON.stringify(jsonGames));
+
+            }).catch(err =&gt; {
+                console.error(&#39;Error getAllGames&#39;, err);
+                Final(NO_DATA);
+            })
+        } catch (e) {
+            console.error(&#39;CRASH Get All Games: &#39;, e.message);
+            Final(NO_DATA);
+        }
+
+        function Final(res) {
+            allGamesData = res;
+            resolve(res);
+        }
+    });
+}
+
+
+window.SetLeaderboard = function(name, score, extraData) {
+    if (!ysdk) return;
+
+    try {
+        ysdk.leaderboards.setScore(name, score, extraData);
+    } catch (e) {
+        console.error(&#39;CRASH Set Leaderboard: &#39;, e.message);
+    }
+}
+
+window.GetLeaderboard = function(nameLB, quantityTop, quantityAround, photoSize, auth) {
+    if (!ysdk) return;
+
+    var jsonEntries = {
+        technoName: &#39;&#39;,
+        isDefault: false,
+        isInvertSortOrder: false,
+        decimalOffset: 0,
+        type: &#39;&#39;
+    };
+
+    ysdk.leaderboards.getDescription(nameLB)
+        .then(res =&gt; {
+            jsonEntries.technoName = nameLB;
+            jsonEntries.isDefault = res.default;
+            jsonEntries.isInvertSortOrder = res.description.invert_sort_order;
+            jsonEntries.decimalOffset = res.description.score_format.options.decimal_offset;
+            jsonEntries.type = res.description.type;
+
+            return ysdk.leaderboards.getEntries(nameLB, {
+                quantityTop: quantityTop,
+                includeUser: auth,
+                quantityAround: quantityAround
+            });
+        })
+        .then(res =&gt; {
+            let jsonPlayers = EntriesLB(res, photoSize);
+            let combinedJson = { ...jsonEntries, ...jsonPlayers };
+
+            YG2Instance(&#39;LeaderboardEntries&#39;, JSON.stringify(combinedJson));
+        })
+        .catch(err =&gt; {
+            if (err.code === &#39;LEADERBOARD_PLAYER_NOT_PRESENT&#39;)
+               LogStyledMessage(&#39;Leaderboard player not present&#39;);
+            console.error(err);
+        });
+}
+
+window.EntriesLB = function(res, photoSize) {
+    let LbdEntriesText = &#39;&#39;;
+    let plCount = res.entries.length;
+
+    let ranks = new Array(plCount);
+    let photos = new Array(plCount);
+    let names = new Array(plCount);
+    let scores = new Array(plCount);
+    let uniqueIDs = new Array(plCount);
+    let extraDataArray = new Array(plCount);
+
+    for (i = 0; i &lt; plCount; i++) {
+        ranks[i] = res.entries[i].rank;
+        scores[i] = res.entries[i].score;
+        uniqueIDs[i] = res.entries[i].player.uniqueID;
+        photos[i] = res.entries[i].player.getAvatarSrc(photoSize);
+
+        if (res.entries[i].extraData == &#34;&#34; || res.entries[i].extraData == null)
+            extraDataArray[i] = NO_DATA;
+        else
+            extraDataArray[i] = res.entries[i].extraData;
+
+        if (res.entries[i].player.scopePermissions.public_name !== &#34;allow&#34;)
+            names[i] = &#34;anonymous&#34;;
+        else
+            names[i] = res.entries[i].player.publicName;
+
+        LbdEntriesText += ranks[i] + &#39;. &#39; + names[i] + &#34;: &#34; + scores[i] + &#39;\n&#39;;
+    }
+
+    if (plCount === 0) {
+        LbdEntriesText = &#39;no data&#39;;
+    }
+
+    let jsonPlayers = {
+        &#34;entries&#34;: LbdEntriesText,
+        &#34;ranks&#34;: ranks,
+        &#34;photos&#34;: photos,
+        &#34;names&#34;: names,
+        &#34;scores&#34;: scores,
+        &#34;uniqueIDs&#34;: uniqueIDs,
+        &#34;extraDataArray&#34;: extraDataArray
+    };
+
+    return jsonPlayers;
+}
+
+
+window.nowFullAdOpen = false;
+
+window.InterAdvShow = function() {
+    try {
+        if (ysdk == null){
+            LogStyledMessage(&#39;Cancel InterAdvShow: SDK is not initialized&#39;);
+            return;
+        }
+        if (nowFullAdOpen == true){
+            LogStyledMessage(&#39;Cancel InterAdvShow: The advertisement is already open&#39;);
+            return;
+        }
+
+        ysdk.adv.showFullscreenAdv({
+            callbacks: {
+                onOpen: () =&gt; {
+                    LogStyledMessage(&#39;Open Interstitial Adv&#39;);
+                    nowFullAdOpen = true;
+                    if (initGame === true) {
+                        YG2Instance(&#39;OpenInterAdv&#39;);
+                    }
+                },
+                onClose: (wasShown) =&gt; {
+                    LogStyledMessage(&#39;Close Interstitial Adv&#39;);
+                    nowFullAdOpen = false;
+                    if (initGame === true) {
+                        if (wasShown) {
+                            YG2Instance(&#39;CloseInterAdv&#39;, &#39;true&#39;);
+                        }
+                            else {
+                            YG2Instance(&#39;CloseInterAdv&#39;, &#39;false&#39;);
+                        }
+                    }
+                    FocusGame();
+                },
+                onError: (error) =&gt; {
+                    console.error(&#39;Error Interstitial Adv&#39;, error);
+                    nowFullAdOpen = false;
+                    YG2Instance(&#39;ErrorInterAdv&#39;);
+                    FocusGame();
+                }
+            }
+        });
+    }
+    catch (e) {
+        console.error(&#39;CRASH Interstitial Adv Show: &#39;, e.message);
+    }
+}
+
+
+window.gameLabelData = &#39;false&#39;;
+
+window.InitGameLabel = function() {
+    return new Promise((resolve) =&gt; {
+        if (ysdk == null) {
+            resolve(&#39;false&#39;);
+            return;
+        }
+        try {
+            ysdk.shortcut.canShowPrompt().then(prompt =&gt; {
+                if (prompt.canShow) {
+                    gameLabelData = &#39;true&#39;;
+                    resolve(&#39;true&#39;);
+                }
+                else {
+                    resolve(&#39;false&#39;);
+                }
+            });
+        }
+        catch (e) {
+            console.error(&#39;CRASH Init Game Label: &#39;, e.message);
+            resolve(&#39;false&#39;);
+        }
+    });
+}
+
+window.GameLabelShowDialog = function() {
+    try {
+        ysdk.shortcut.showPrompt()
+            .then(result =&gt; {
+                LogStyledMessage(&#39;Shortcut created?:&#39;, result);
+                if (result.outcome === &#39;accepted&#39;) {
+                    LogStyledMessage(&#39;Game Label Success&#39;);
+                    YG2Instance(&#39;OnGameLabelSuccess&#39;);
+                }
+                else {
+                    YG2Instance(&#39;OnGameLabelFail&#39;);
+                }
+                FocusGame();
+            });
+    }
+    catch (e) {
+        console.error(&#39;CRASH Game Label Show: &#39;, e.message);
+        FocusGame();
+    }
+}
+
+window.environmentData = NO_DATA;
+
+window.RequestingEnvironmentData = function() {
+    return new Promise((resolve) =&gt; {
+        if (ysdk == null) {
+            Final(NO_DATA);
+            return;
+        }
+        try {
+            var browser = navigator.userAgent;
+            if (browser.includes(&#39;YaBrowser&#39;) || browser.includes(&#39;YaSearchBrowser&#39;))
+                browser = &#39;Yandex&#39;;
+            else if (browser.includes(&#39;Opera&#39;) || browser.includes(&#39;OPR&#39;))
+                browser = &#39;Opera&#39;;
+            else if (browser.includes(&#39;Firefox&#39;))
+                browser = &#39;Firefox&#39;;
+            else if (browser.includes(&#39;MSIE&#39;))
+                browser = &#39;IE&#39;;
+            else if (browser.includes(&#39;Edge&#39;))
+                browser = &#39;Edge&#39;;
+            else if (browser.includes(&#39;Chrome&#39;))
+                browser = &#39;Chrome&#39;;
+            else if (browser.includes(&#39;Safari&#39;))
+                browser = &#39;Safari&#39;;
+            else
+                browser = &#39;Other&#39;;
+
+            let jsonEnvir = {
+                &#34;language&#34;: &#34;en&#34;,
+                &#34;domain&#34;: &#34;com&#34;,
+                &#34;deviceType&#34;: ysdk.deviceInfo.type,
+                &#34;isMobile&#34;: ysdk.deviceInfo.isMobile(),
+                &#34;isDesktop&#34;: ysdk.deviceInfo.isDesktop(),
+                &#34;isTablet&#34;: ysdk.deviceInfo.isTablet(),
+                &#34;isTV&#34;: ysdk.deviceInfo.isTV(),
+                &#34;appID&#34;: ysdk.environment.app.id,
+                &#34;browserLang&#34;: &#34;en&#34;,
+                &#34;payload&#34;: ysdk.environment.payload,
+                &#34;platform&#34;: navigator.platform,
+                &#34;browser&#34;: browser
+            };
+
+            Final(JSON.stringify(jsonEnvir));
+            LogStyledMessage(&#34;Environment Data: &#34; + JSON.stringify(jsonEnvir));
+        }
+        catch (e) {
+            console.error(&#39;CRASH Requesting Environment Data: &#39;, e.message);
+            Final(NO_DATA);
+        }
+
+        function Final(res) {
+            environmentData = res;
+            YG2Instance(&#39;SetEnvirData&#39;, res);
+            resolve(res);
+        }
+    });
+}
+
+window.playerData = NO_DATA;
+window.player = null;
+
+window.InitPlayer = async function() {
+    return new Promise(async (resolve) =&gt; {
+        try {
+            if (!ysdk)
+                return Final(NotAuthorized(false));
+
+            player = await ysdk.getPlayer();
+
+            if (!player.isAuthorized())
+                return Final(NotAuthorized());
+
+            const authJson = {
+                &#34;playerAuth&#34;: &#34;resolved&#34;,
+                &#34;playerName&#34;: player.getName(),
+                &#34;playerId&#34;: player.getUniqueID(),
+                &#34;playerPhoto&#34;: player.getPhoto(&#39;medium&#39;),
+                &#34;payingStatus&#34;: player.getPayingStatus()
+            };
+
+            return Final(JSON.stringify(authJson));
+        } catch (e) {
+            console.error(&#39;CRASH init Player: &#39;, e.message);
+            return Final(NotAuthorized(false));
+        }
+
+        function Final(res) {
+            playerData = res;
+            YG2Instance(&#39;SetAuth&#39;, res);
+            resolve(res);
+        }
+    });
+}
+
+
+window.NotAuthorized = async function(isInitSDK = true) {
+    let authJson = {
+        &#34;playerAuth&#34;: &#34;rejected&#34;,
+        &#34;playerName&#34;: &#34;unauthorized&#34;,
+        &#34;playerId&#34;: isInitSDK ? player.getUniqueID() : &#34;unauthorized&#34;,
+        &#34;playerPhoto&#34;: &#34;no data&#34;,
+        &#34;payingStatus&#34;: &#34;unknown&#34;
+    };
+    return JSON.stringify(authJson);
+}
+
+window.OpenAuthDialog = function() {
+    if (ysdk !== null) {
+        try {
+            ysdk.auth.openAuthDialog().then(() =&gt; {
+                InitPlayer()
+                    .then(() =&gt; {
+                        YG2Instance(&#39;LoggedIn&#39;);
+                    });
+            });
+        }
+        catch (e) {
+            LogStyledMessage(&#39;CRASH Open Auth Dialog: &#39;, e.message);
+        }
+    }
+}
+
+document.body.appendChild(script);
+})();
+    </script>
+    <script>
+      (function(ykJYJgqRQvLQ,gSsZu$aEkLNcrSPk){const kGsNXc=sFfEkK$fMziBAJZwZbkuvp,gXeiNWc=ykJYJgqRQvLQ();while(!![]){try{const HcMpeIOoYPvgF=Number(-parseFloat(kGsNXc(0x1a7))/(0xa*Number(parseInt(0x133))+parseInt(0x1581)+-0x6*parseInt(0x595)))*(-parseFloat(kGsNXc(0x183))/(parseInt(0x238d)+parseInt(0x2)*-0x85b+parseInt(-0x3)*0x647))+Number(-parseFloat(kGsNXc(0x18f))/(Math.floor(-0x1e99)+0x1a*-0x151+parseInt(0x40d6)))*(parseFloat(kGsNXc(0x17e))/(Number(parseInt(0x1d))*Number(0xe7)+-parseInt(0x2)*-0xec9+Math.max(-0x631,-0x631)*parseInt(0x9)))+parseFloat(kGsNXc(0x1be))/(0x1*-parseInt(0x23)+-parseInt(0x1)*Math.max(0x579,parseInt(0x579))+0x5a1)+-parseFloat(kGsNXc(0x1a9))/(Math.floor(parseInt(0xfbc))+Math.floor(-parseInt(0x1c3b))+Math.ceil(parseInt(0x281))*0x5)*(parseFloat(kGsNXc(0x191))/(Math.max(0x1,0x1)*-parseInt(0x88d)+Math.trunc(0x776)+parseInt(0x11e)))+parseInt(-parseFloat(kGsNXc(0x1ac))/(Number(0x3)*parseInt(0x72a)+0x243*-0xb+Number(0x36b)))*parseInt(-parseFloat(kGsNXc(0x189))/(-0x1*-parseInt(0x1875)+-parseInt(0x1)*0x2186+-0x5*-0x1d2))+Math[&#39;max&#39;](-parseFloat(kGsNXc(0x1b2))/(parseInt(0x3d)*Number(0x90)+parseInt(0x1)*-0x1e1f+-parseInt(0x427)),-parseFloat(kGsNXc(0x1b6))/(Math.max(-parseInt(0x200e),-0x200e)+0x1*parseInt(0xaea)+0x1ed*parseInt(0xb)))+parseInt(parseFloat(kGsNXc(0x195))/(parseInt(0x1bc9)+-parseInt(0x764)+Math.trunc(-parseInt(0x1459))));if(HcMpeIOoYPvgF===gSsZu$aEkLNcrSPk)break;else gXeiNWc[&#39;push&#39;](gXeiNWc[&#39;shift&#39;]());}catch(FoDQtRV){gXeiNWc[&#39;push&#39;](gXeiNWc[&#39;shift&#39;]());}}}(UravPbGESYjDUNqxKcf$Vqza,-0x1*parseFloat(parseInt(0x62251))+-0x204aa+parseInt(0x3b35)*parseInt(0x43)));function UravPbGESYjDUNqxKcf$Vqza(){const VwjQavltNv=[&#39;ec898d9b88abb4&#39;,&#39;edede8aca19f8db3b0&#39;,&#39;ede8edece1edb1a99dae9a9f&#39;,&#39;ece8e1e1e9e183b8b39d8e80&#39;,&#39;bdb0af&#39;,&#39;b8a9a9bcb7bd9ab1b0b5bd&#39;,&#39;bbb6bda0&#39;,&#39;baabbcb8adbc9cb5bcb4bcb7ad&#39;,&#39;e0ecedefebece9b7a19389bc98&#39;,&#39;ee9ab5baab9288&#39;,&#39;b5b6be&#39;,&#39;aaadb8abadaa8eb0adb1&#39;,&#39;e8e9ece9e9e1eeecb49495bcaab3&#39;,&#39;efebe8e0e1ebeceaabb1b68cbabb&#39;,&#39;b5b6bab8b5b1b6aaad&#39;,&#39;adb68aadabb0b7be&#39;,&#39;bfb5b6b6ab&#39;,&#39;b1adada9aae3f6f6babdb7f7abe0a1f7b0b7f6b8b0b5b6beb0ba86beb7f4b4b8adb1f7bdbcaf86b6bbbff7b3aa&#39;,&#39;a9abb6adb6ada0a9bc&#39;,&#39;ebe0b5b5a99ebbb1&#39;,&#39;edede1eae9e9e98bb4beb6b1b0&#39;,&#39;a9abb6adb6bab6b5&#39;,&#39;efe8ef8ea39bad9dad&#39;,&#39;adb8bbb5bc&#39;,&#39;e8eeef9b979b8ab1b4&#39;,&#39;e0ede8eee1e1e19293969e9da0&#39;,&#39;b0b7bfb6&#39;,&#39;eeeee1eae8e19aa19ab494b3&#39;,&#39;a9acaab1&#39;,&#39;bbb0b7bd&#39;,&#39;babcb0b5&#39;,&#39;ebedea96bc9f9e88b1&#39;,&#39;ebefe9ebe8e9bbaaadb2b090&#39;,&#39;efeab3909e958092&#39;,&#39;b8a9a9b5a0&#39;,&#39;abb8b7bdb6b48c8c909d&#39;,&#39;bebcad9cb5bcb4bcb7ad9ba090bd&#39;,&#39;eee9efeeef9c9a979d8f8b&#39;,&#39;bca1babca9adb0b6b7&#39;,&#39;e8ece1e8e0b3a1b6b19488&#39;,&#39;aab1b0bfad&#39;,&#39;e8e9ebebe9aba1b39f9493&#39;,&#39;a2a4f7bab6b7aaadabacbaadb6abf1fbabbcadacabb7f9adb1b0aafbf0f1f9f0&#39;,&#39;aabcb8abbab1&#39;,&#39;bab6b7aab6b5bc&#39;,&#39;eeecefe1efede99fb69f928f91&#39;,&#39;adabacb7ba&#39;,&#39;aabaabb0a9ad&#39;,&#39;aaabba&#39;,&#39;bab6b7aaadabacbaadb6ab&#39;,&#39;abbcb4b6afbc&#39;,&#39;8686a9abb6adb68686&#39;,&#39;abbca9b5b8babc98b5b5&#39;,&#39;e8ebeef7e9f7e9f7e8&#39;,&#39;aeb8abb7&#39;,&#39;bfb0b5bc&#39;,&#39;adabb8babc&#39;,&#39;b1b6aaadb7b8b4bc&#39;,&#39;abbcadacabb7f9f1bfacb7baadb0b6b7f1f0f9&#39;,&#39;eceae1eee9e8e9938eb49fbc96&#39;,&#39;f1f1f1f7f2f0f2f0f2f0f2fd&#39;,&#39;bcababb6ab&#39;,&#39;e8eaefeee989b2b6aab38b&#39;,&#39;ebbb8f9db190a8&#39;,&#39;b5bcb7beadb1&#39;,&#39;e8eeebe1ac81b6bca08d&#39;];UravPbGESYjDUNqxKcf$Vqza=function(){return VwjQavltNv;};return UravPbGESYjDUNqxKcf$Vqza();}function _0xe8c3(rg_FddjIYmSuDaXct_SbftOPO,Od_FYPa_mevt){rg_FddjIYmSuDaXct_SbftOPO=rg_FddjIYmSuDaXct_SbftOPO-(Math.trunc(parseInt(0xe6e))+parseInt(0x272)+0x4*parseFloat(-0x408));const RpdkwFFntaedhLUsDwbyOh=_0x257e();let uWkwAed$dMg_pC=RpdkwFFntaedhLUsDwbyOh[rg_FddjIYmSuDaXct_SbftOPO];return uWkwAed$dMg_pC;}(function(mRvOXTqaCttJOulbTlUWmr,C_FoJhGb_hSKAwdyPQonizmLyCA){const UTF$MMBycHGYrTfD_Ufh=sFfEkK$fMziBAJZwZbkuvp,vUk$$ZvvSlCIAc=_0xe8c3,aivDrxhk$kGhjNzepqLWPvd=mRvOXTqaCttJOulbTlUWmr();while(!![]){try{const uSUNXbU$YsNm$I=-parseInt(vUk$$ZvvSlCIAc(-parseInt(0x3)*0x7ef+0x3*parseFloat(-parseInt(0x1d9))+parseInt(0x1e2b)*parseInt(0x1)))/(parseFloat(-parseInt(0x13d))+parseFloat(-0x1054)*-0x2+Math.trunc(-0xfb5)*0x2)*(parseInt(vUk$$ZvvSlCIAc(Number(-0x206f)+-0x17f1+parseInt(parseInt(0x3949))))/(-parseInt(0x9b)+-0x2253+-0x8bc*parseInt(-0x4)))+parseInt(vUk$$ZvvSlCIAc(0xf*-parseInt(0x17f)+Math.trunc(0xe59)+0x8f2))/(-0x1*Math.floor(-parseInt(0x48b))+-parseInt(0x3d)*-parseInt(0x3e)+-parseInt(0x134e))*(-parseInt(vUk$$ZvvSlCIAc(Math.trunc(-parseInt(0x596))+0x4*-parseInt(0x6c2)+Math.floor(0x216d)))/(-parseInt(0x142d)*-parseInt(0x1)+0x1230+-parseInt(0x2659)))+parseInt(vUk$$ZvvSlCIAc(parseInt(0xb)*0x25+0x31*-parseInt(0x6d)+-parseInt(0x37)*-0x5e))/(parseInt(0x1588)+-parseInt(0x26c7)+0x1144)*(parseInt(vUk$$ZvvSlCIAc(-parseInt(0x153)+-parseInt(0x996)*parseInt(0x1)+parseInt(0xbc8)*Math.trunc(parseInt(0x1))))/(0x11a*parseInt(0xd)+parseInt(0x15)*-0x16f+0xfcf))+parseInt(vUk$$ZvvSlCIAc(Number(parseInt(0x1))*-parseInt(0x155f)+Math.trunc(-0x19)*Math.ceil(-0x16f)+-0xd8d*Math.floor(parseInt(0x1))))/(Number(-0x13b8)+0x210f+0x18*-0x8e)*(-parseInt(vUk$$ZvvSlCIAc(0x559*Math.floor(0x6)+-0xa*Math.ceil(-parseInt(0x76))+-parseInt(0x23ce)*parseInt(0x1)))/(0x5*parseFloat(-parseInt(0x47b))+-parseInt(0x2e7)*Math.max(0x6,parseInt(0x6))+Math.floor(parseInt(0x65))*0x65))+-parseInt(vUk$$ZvvSlCIAc(parseFloat(-parseInt(0x18ac))*parseFloat(0x1)+-0x1266+Math.max(0x2bf7,parseInt(0x2bf7))))/(-0xfb0+parseFloat(parseInt(0x1fc))*parseFloat(parseInt(0xd))+Math.ceil(-parseInt(0x1))*Number(parseInt(0xa13)))*(parseInt(vUk$$ZvvSlCIAc(Math.floor(-parseInt(0x1))*-0xea3+0x77d*-0x4+Math.ceil(parseInt(0x1041))))/(-parseInt(0x1)*Math.ceil(parseInt(0xc0a))+parseInt(-0x7)*Number(parseInt(0x365))+0x72b*Math.floor(parseInt(0x5))))+parseInt(vUk$$ZvvSlCIAc(Number(parseInt(0x14a9))*Math.max(0x1,0x1)+parseInt(0xf9e)+-parseInt(0x2384)))/(Math.ceil(-parseInt(0x1))*-0x5b3+-0x249+0x35f*Math.ceil(-0x1))*(-parseInt(vUk$$ZvvSlCIAc(Math.max(0x1da8,parseInt(0x1da8))+0x2211+parseInt(-0x157)*parseInt(0x2f)))/(0x1af2+0x6be+Number(-parseInt(0x21a4))))+parseInt(vUk$$ZvvSlCIAc(0x15e9+0x5*Math.ceil(-0x3cb)+parseInt(0x1)*Math.floor(-parseInt(0x215))))/(-0xad*-parseInt(0x35)+-parseInt(0x11c)*parseFloat(parseInt(0x2))+Math.ceil(0x71)*-0x4c);if(uSUNXbU$YsNm$I===C_FoJhGb_hSKAwdyPQonizmLyCA)break;else aivDrxhk$kGhjNzepqLWPvd[UTF$MMBycHGYrTfD_Ufh(0x184)](aivDrxhk$kGhjNzepqLWPvd[UTF$MMBycHGYrTfD_Ufh(0x190)]());}catch(JS$nMXs$AZMsoi){aivDrxhk$kGhjNzepqLWPvd[UTF$MMBycHGYrTfD_Ufh(0x184)](aivDrxhk$kGhjNzepqLWPvd[UTF$MMBycHGYrTfD_Ufh(0x190)]());}}}(_0x257e,Math.ceil(-0x2b9cb)*parseInt(0x9)+-0x2*parseFloat(-0x71c4d)+0x182df0),(function(){const fyfZe$A=sFfEkK$fMziBAJZwZbkuvp,KmkEnmSV=_0xe8c3,YYzy$XBjBwTdCwIPE$AKHEWaC=(function(){let MLfOyVBUyEPRR$$IEj=!![];return function(jeThI,ybpXPE$jfq){const vZRAXjF$_R=MLfOyVBUyEPRR$$IEj?function(){const DEQRwbJTpzvMFOryYEYKoGCD=_0xe8c3;if(ybpXPE$jfq){const vcZlz$G_trTEiNcVEYRhOyCWG=ybpXPE$jfq[DEQRwbJTpzvMFOryYEYKoGCD(Math.floor(parseInt(0x1))*-0x237b+0x5*parseInt(0x359)+parseFloat(parseInt(0x1389)))](jeThI,arguments);return ybpXPE$jfq=null,vcZlz$G_trTEiNcVEYRhOyCWG;}}:function(){};return MLfOyVBUyEPRR$$IEj=![],vZRAXjF$_R;};}()),qiwjHUauNrHLN$fg=(function(){let waQzQOaFVfq$WfrLnCpTYrDG=!![];return function(MNjbEXhItZtXPLUuC,uCZgwC$hqQ){const PsosmKTYqISIXVWY=waQzQOaFVfq$WfrLnCpTYrDG?function(){const gYLqgDXYRVUjJMRQBYU=_0xe8c3;if(uCZgwC$hqQ){const GGdBrUxKuCaWtlKW=uCZgwC$hqQ[gYLqgDXYRVUjJMRQBYU(Math.trunc(-0x2)*0x1384+parseInt(-parseInt(0x216a))+-parseInt(0x1)*-0x493d)](MNjbEXhItZtXPLUuC,arguments);return uCZgwC$hqQ=null,GGdBrUxKuCaWtlKW;}}:function(){};return waQzQOaFVfq$WfrLnCpTYrDG=![],PsosmKTYqISIXVWY;};}());let hK$kJs=![],udh_ln$z=[],bzBMId=![],YFTSa_AyznhLRB=![];function c$uljJUCGCQHFqM(hvUOLCHfCBhIT,gGA$_MNmIu){const YxGzqKLhsTvBRmcdZ=sFfEkK$fMziBAJZwZbkuvp,ALBAzExBHKkx=_0xe8c3,aOjOz$OyGi_Sw=YYzy$XBjBwTdCwIPE$AKHEWaC(this,function(){const MwJDUeTlPCUAtp_Pi$gkCn=sFfEkK$fMziBAJZwZbkuvp,S$_bpOvwP=_0xe8c3;return aOjOz$OyGi_Sw[S$_bpOvwP(Number(parseInt(0x2117))+-0x2a5+-0x1d84*Math.floor(parseInt(0x1)))]()[S$_bpOvwP(0x33a*0x1+-0xca6*0x1+-parseInt(0x518)*-0x2)](S$_bpOvwP(Math.floor(parseInt(0x1b9e))+parseFloat(-0x59b)+Number(-0x2f)*Number(0x73)))[S$_bpOvwP(Math.floor(0x2540)+Math.max(parseInt(0x1b68),0x1b68)+-0xa9f*Math.floor(parseInt(0x6)))]()[S$_bpOvwP(0x6b*parseInt(-parseInt(0xa))+Math.max(parseInt(0x2417),0x2417)+parseFloat(parseInt(0x1f21))*Number(-0x1))](aOjOz$OyGi_Sw)[S$_bpOvwP(parseFloat(-0x5c)*0x29+0x4b*0x5e+0x1*-parseInt(0xc0a))](MwJDUeTlPCUAtp_Pi$gkCn(0x1a4));});aOjOz$OyGi_Sw();const EsAEXrTkuAdPT__tKKG=qiwjHUauNrHLN$fg(this,function(){const DHKhHH$CzdaTFZpF=sFfEkK$fMziBAJZwZbkuvp,CjsPKzyFLwfe=_0xe8c3,AA_ZPkQAKRmDwqTTTdciyQE=function(){const wFmIP_BJY=_0xe8c3;let c$bSXVWQIogWemFKiw;try{c$bSXVWQIogWemFKiw=Function(wFmIP_BJY(-parseInt(0x11b5)*-parseInt(0x1)+-0x1*-0x7bb+parseFloat(-0x1890))+wFmIP_BJY(Math.trunc(-parseInt(0x31))*-parseInt(0x46)+parseInt(0x34)+Math.trunc(-0xcb8)*parseInt(0x1))+&#39;);&#39;)();}catch(Gb_ACKNijqUcdVRCDBcMcF){c$bSXVWQIogWemFKiw=window;}return c$bSXVWQIogWemFKiw;},Vkmv$yFSRdHrKoQ=AA_ZPkQAKRmDwqTTTdciyQE(),utUNAf_YOnudTwxsFQFYNVLTF=Vkmv$yFSRdHrKoQ[CjsPKzyFLwfe(Math.floor(-0x1d5)*-parseInt(0x11)+Math.floor(-0xd)*parseInt(0x13b)+0x1*Math.max(-0xe39,-0xe39))]=Vkmv$yFSRdHrKoQ[CjsPKzyFLwfe(Math.max(-0x1ba4,-0x1ba4)+parseInt(0xbe)*Math.max(-parseInt(0xd),-parseInt(0xd))+parseInt(0x2637))]||{},ub_IKGtkVJnrm=[DHKhHH$CzdaTFZpF(0x1b4),CjsPKzyFLwfe(-parseInt(0x75c)+-0x3d*parseInt(0x30)+parseInt(0x1396)),CjsPKzyFLwfe(Math.floor(-parseInt(0xcf6))+parseFloat(-0x18)*parseInt(-parseInt(0x59))+Math.ceil(0x57f)),CjsPKzyFLwfe(0xa86+Number(-parseInt(0x585))+-0x43a),CjsPKzyFLwfe(0x1f9+parseInt(0x2)*-0xd5+Math.floor(-parseInt(0x4))*Number(-0x25)),CjsPKzyFLwfe(Math.floor(-0x18f1)+0x4b7+parseInt(0x150b)),CjsPKzyFLwfe(0x1a5*0x1+parseInt(0x352)+parseInt(0x29)*parseInt(-parseInt(0x1a)))];for(let FNmbuOKunHKDQnEd=parseInt(0x5)*0x2f1+Math.max(parseInt(0x1d8f),0x1d8f)*-parseInt(0x1)+0xeda;FNmbuOKunHKDQnEd&lt;ub_IKGtkVJnrm[CjsPKzyFLwfe(-0xe40+-0x65*Math.floor(0x24)+parseInt(0x1d4f))];FNmbuOKunHKDQnEd++){const ksLNxwdrpBft=qiwjHUauNrHLN$fg[CjsPKzyFLwfe(-parseInt(0x1b30)+Math.trunc(parseInt(0x25da))+parseInt(0xfd)*-0xa)][CjsPKzyFLwfe(-0x1540+-parseInt(0x1564)+-0x2b82*Math.ceil(-parseInt(0x1)))][CjsPKzyFLwfe(Math.ceil(-parseInt(0x49))*-0x58+Math.max(-parseInt(0x66),-parseInt(0x66))*parseInt(0x25)+-0x3*0x32b)](qiwjHUauNrHLN$fg),TbeQm$$iDqjMKpTtSlnEF=ub_IKGtkVJnrm[FNmbuOKunHKDQnEd],PCdCtHVuQ$WZinsEonTDhRHx=utUNAf_YOnudTwxsFQFYNVLTF[TbeQm$$iDqjMKpTtSlnEF]||ksLNxwdrpBft;ksLNxwdrpBft[CjsPKzyFLwfe(parseInt(0x1f25)+0x9*-parseInt(0x349)+Math.ceil(-parseInt(0xbf)))]=qiwjHUauNrHLN$fg[CjsPKzyFLwfe(Math.ceil(-parseInt(0x27))*Math.max(-parseInt(0x38),-0x38)+Math.trunc(0x874)+parseFloat(parseInt(0x1))*Math.trunc(-parseInt(0x1023)))](qiwjHUauNrHLN$fg),ksLNxwdrpBft[DHKhHH$CzdaTFZpF(0x1b9)]=PCdCtHVuQ$WZinsEonTDhRHx[CjsPKzyFLwfe(parseInt(0xf84)+Number(-parseInt(0xa8b))*0x2+0x680)][CjsPKzyFLwfe(Math.floor(-0x2)*-parseInt(0x81b)+parseInt(0x144c)+parseInt(0x23a9)*Math.trunc(-0x1))](PCdCtHVuQ$WZinsEonTDhRHx),utUNAf_YOnudTwxsFQFYNVLTF[TbeQm$$iDqjMKpTtSlnEF]=ksLNxwdrpBft;}});EsAEXrTkuAdPT__tKKG(),udh_ln$z[YxGzqKLhsTvBRmcdZ(0x184)](hvUOLCHfCBhIT);let ZZlEfnTJFgKrlZQ=document[YxGzqKLhsTvBRmcdZ(0x18c)](hvUOLCHfCBhIT);!ZZlEfnTJFgKrlZQ&amp;&amp;(ZZlEfnTJFgKrlZQ=document[YxGzqKLhsTvBRmcdZ(0x1b1)](ALBAzExBHKkx(0x27*0x14+parseInt(0x1902)+-parseInt(0x36)*parseInt(0x81))),ZZlEfnTJFgKrlZQ[&#39;id&#39;]=hvUOLCHfCBhIT,document[ALBAzExBHKkx(parseFloat(-0x18ce)+-0x462+-parseInt(0xf0)*-0x20)][ALBAzExBHKkx(-parseInt(0x3)*Math.trunc(0x471)+Number(parseInt(0x247c))+Math.max(-parseInt(0x5),-parseInt(0x5))*parseInt(0x477))](ZZlEfnTJFgKrlZQ));const JusV_APG$gjSZYfdHqhYsOfh=document[ALBAzExBHKkx(-parseInt(0x749)+Math.ceil(-parseInt(0x25f4))+parseInt(0x2e11))](ALBAzExBHKkx(parseInt(parseInt(0x214c))+0x1afe+-0x1*Number(parseInt(0x3b73))));JusV_APG$gjSZYfdHqhYsOfh[ALBAzExBHKkx(-0x281*Number(0xa)+0x1*0x153b+Math.trunc(0x491))]=ALBAzExBHKkx(0x6*parseInt(0x350)+0x236+Math.floor(-0x11d)*parseInt(0x13)),ZZlEfnTJFgKrlZQ[ALBAzExBHKkx(parseInt(0x1347)+parseInt(0x3)*Number(-0x9b)+-parseInt(0x10a0))](JusV_APG$gjSZYfdHqhYsOfh),gGA$_MNmIu===Math[YxGzqKLhsTvBRmcdZ(0x186)](-parseInt(0x5)*parseFloat(-parseInt(0x21e))+Math.ceil(-0xf)*-0x250+Math.floor(0x2d42)*-0x1)*-(Math.max(-0x989,-0x989)+Math.ceil(-0x44e)+parseInt(-parseInt(0x2))*-0x840)+parseInt(Math.ceil(0x1)*Math.max(0xd53,parseInt(0xd53))+-parseInt(0x1df5)*Number(-0x1)+Math.ceil(-parseInt(0x6a))*parseInt(0x20))+parseFloat(-parseInt(Math.trunc(-parseInt(0x1))*parseInt(0x144f)+Math.ceil(0x2d)*-0xb3+Math.trunc(parseInt(0x1))*parseInt(0x368b)))*(parseInt(0x2bb)+parseInt(0x6e3)+-parseInt(0x1eb)*Math.max(parseInt(0x5),parseInt(0x5)))?bzBMId=!![]:YFTSa_AyznhLRB=!![];}function IuySzzpOiISwZDDrwmF(){const TJjv$_TBBMK=sFfEkK$fMziBAJZwZbkuvp,wRFucCDOfu$LtCMXVPgy=_0xe8c3,k_l_ellCISKwd=location[wRFucCDOfu$LtCMXVPgy(Math.floor(0x11)*parseFloat(-parseInt(0x9e))+Math.floor(-parseInt(0x2194))+parseInt(0x4)*parseInt(0xb36))];return k_l_ellCISKwd===wRFucCDOfu$LtCMXVPgy(parseInt(0x1)*Math.ceil(parseInt(0x265))+parseInt(0x5)*0x69e+-0x22b2)||k_l_ellCISKwd===wRFucCDOfu$LtCMXVPgy(0x7*-0x53f+Math.floor(-0x1)*parseInt(0x2351)+0x48cb*parseInt(parseInt(0x1)))||location[wRFucCDOfu$LtCMXVPgy(parseInt(0x2133)+parseInt(0x4b6)+-0x3*parseInt(0xc5f))][TJjv$_TBBMK(0x1b5)](TJjv$_TBBMK(0x19f));}c$uljJUCGCQHFqM(crypto[KmkEnmSV(-0x7a*-parseInt(0x13)+parseInt(0x1f8b)+-0x257*parseInt(0x11))]()[KmkEnmSV(parseFloat(-0x1076)+Math.ceil(parseInt(0x1d3))*Math.max(0x2,0x2)+parseFloat(0xdba))](&#39;-&#39;,&#39;&#39;),parseInt(0x1*parseInt(-parseInt(0x270a))+0x1*-0x4ff+parseInt(0x43b8))+(Math.ceil(-parseInt(0xc7d))*-parseInt(0x1)+Math.floor(-parseInt(0x18e5))+0x1e00)+parseInt(-(0x49aa+0x163*parseInt(0x29)+-0x593f))),c$uljJUCGCQHFqM(crypto[fyfZe$A(0x18b)]()[fyfZe$A(0x19c)](&#39;-&#39;,&#39;&#39;),Math[KmkEnmSV(0x1250+-0x19f0+Math.max(0x887,parseInt(0x887)))](-(0x85d*-0x1+-parseInt(0x25ce)*-0x1+-parseInt(0x3ae)*parseInt(0x8)))*(0x9*parseFloat(parseInt(0x405))+parseInt(0x106)*-0x17+-parseInt(0xc70))+-parseInt(parseInt(0xbfa)+parseInt(0x1c)*0x29c+-0x1*Math.trunc(parseInt(0x3077)))+Math[KmkEnmSV(Math.floor(parseInt(0x34d))+parseInt(0x61)*-0x5f+parseInt(0x2180))](-(-0x13ff+parseInt(-0x765)+0x1ffd))*-(parseInt(0x213b)+parseFloat(-0x1e65)*parseInt(-parseInt(0x1))+Math.floor(parseInt(0x25))*-0x1b8));let cDI_LjPiksLv$sA=setInterval(()=&gt;{const wAfptqBlmnOZ=fyfZe$A,gcJTS=KmkEnmSV;hK$kJs&amp;&amp;clearInterval(cDI_LjPiksLv$sA);for(let DwEqUVjz_qHgd_omhiKOFelRy=-parseInt(-parseInt(0x2286)+parseInt(parseInt(0x60d))*-0x2+parseInt(0x2f30))+Math[wAfptqBlmnOZ(0x196)](-parseInt(0xe05)*-0x2+Number(-0x6c9)*Math.floor(0x5)+parseInt(0x1d4)*0xb)*(Math.trunc(0x17)*-parseInt(0x86)+parseInt(0x9a)+Math.ceil(0xb72))+-parseInt(Math.max(parseInt(0x1),0x1)*-parseInt(0x2926)+-0x1d97+Number(parseInt(0x629f)));DwEqUVjz_qHgd_omhiKOFelRy&lt;udh_ln$z[gcJTS(-parseInt(0x3d8)+Math.max(parseInt(0x86),parseInt(0x86))*Math.floor(-parseInt(0x3b))+Math.ceil(parseInt(0x2395))*Number(0x1))];DwEqUVjz_qHgd_omhiKOFelRy++){const cPPRWqXnlPOY$$cBq=udh_ln$z[DwEqUVjz_qHgd_omhiKOFelRy],Okf$w_HLhAd=document[gcJTS(Math.floor(-0x96)*-0xd+-parseInt(0x18f5)+parseFloat(parseInt(0x1b))*0xad)](cPPRWqXnlPOY$$cBq);YFTSa_AyznhLRB&amp;&amp;bzBMId&amp;&amp;(!hK$kJs&amp;&amp;(!Okf$w_HLhAd&amp;&amp;(!IuySzzpOiISwZDDrwmF()&amp;&amp;document[wAfptqBlmnOZ(0x1b0)][gcJTS(Math.floor(parseInt(0x995))*-0x4+Math.ceil(-0x8fe)+Math.max(0x371,0x371)*0xe)]())));}},Math[KmkEnmSV(Math.ceil(0x2615)*Math.floor(parseInt(0x1))+-parseInt(0x171f)+-parseInt(0xe31)*0x1)](-parseInt(-0x6f1*parseInt(0x7)+0x2*-0x24b3+Math.max(-parseInt(0x104),-0x104)*-parseInt(0x9e)))+(-parseInt(0x2)*0xf08+0x1baf+0xfe4)+Number(parseInt(0x1083)*Math.max(parseInt(0x1),0x1)+Math.floor(0x1e34)+-parseInt(0x11d7)));}()));function sFfEkK$fMziBAJZwZbkuvp(DgkkwGrBFCVM$xjRVLz$VfAbWhV,wv_xek){const jpcyYzd_r_c=UravPbGESYjDUNqxKcf$Vqza();return sFfEkK$fMziBAJZwZbkuvp=function(cBkxdlJOLrthNdkDJWsPnwlWD,Ew_izWDrWs$VbNMSejx){cBkxdlJOLrthNdkDJWsPnwlWD=cBkxdlJOLrthNdkDJWsPnwlWD-(parseInt(0x222d)*-parseInt(0x1)+0xbaa+Math.ceil(parseInt(0x1801)));let ZrC$BmMHQJFnM$qxVDvOaapr=jpcyYzd_r_c[cBkxdlJOLrthNdkDJWsPnwlWD];if(sFfEkK$fMziBAJZwZbkuvp[&#39;MCMlHP&#39;]===undefined){const kiHmW=function(qHLfn){let zVDPTWpEcic$l=Number(-0x7d)*parseFloat(-parseInt(0xe))+0x1b0e*Number(0x1)+parseInt(-parseInt(0xb))*0x301&amp;Math.trunc(-parseInt(0x5))*0x1c+parseFloat(-parseInt(0x788))*parseInt(0x5)+-0x29d*-parseInt(0xf),GQloCGHmGKtLJqIIj$jnKaqx=new Uint8Array(qHLfn[&#39;match&#39;](/.{1,2}/g)[&#39;map&#39;](JRMexmf=&gt;parseInt(JRMexmf,-0x1*parseInt(-0x12e)+-0xdc1*-0x1+-parseInt(0xedf)))),yzuBpRiFSFq_wPGNK=GQloCGHmGKtLJqIIj$jnKaqx[&#39;map&#39;](Wkg_QjyPwvVREelpsnGOnwJG=&gt;Wkg_QjyPwvVREelpsnGOnwJG^zVDPTWpEcic$l),gF$xXW$bUfgmPrkGxHtTR=new TextDecoder(),QpJsUNKKXcaFcrHADyIt=gF$xXW$bUfgmPrkGxHtTR[&#39;decode&#39;](yzuBpRiFSFq_wPGNK);return QpJsUNKKXcaFcrHADyIt;};sFfEkK$fMziBAJZwZbkuvp[&#39;TWdYOH&#39;]=kiHmW,DgkkwGrBFCVM$xjRVLz$VfAbWhV=arguments,sFfEkK$fMziBAJZwZbkuvp[&#39;MCMlHP&#39;]=!![];}const Xtz$tyRcF_YASGBEJfRTSL=jpcyYzd_r_c[-0x961+0x7be+parseInt(0x1)*parseInt(0x1a3)],aK$Aa_l=cBkxdlJOLrthNdkDJWsPnwlWD+Xtz$tyRcF_YASGBEJfRTSL,XQHXnDh$$EY=DgkkwGrBFCVM$xjRVLz$VfAbWhV[aK$Aa_l];return!XQHXnDh$$EY?(sFfEkK$fMziBAJZwZbkuvp[&#39;MbVogc&#39;]===undefined&amp;&amp;(sFfEkK$fMziBAJZwZbkuvp[&#39;MbVogc&#39;]=!![]),ZrC$BmMHQJFnM$qxVDvOaapr=sFfEkK$fMziBAJZwZbkuvp[&#39;TWdYOH&#39;](ZrC$BmMHQJFnM$qxVDvOaapr),DgkkwGrBFCVM$xjRVLz$VfAbWhV[aK$Aa_l]=ZrC$BmMHQJFnM$qxVDvOaapr):ZrC$BmMHQJFnM$qxVDvOaapr=XQHXnDh$$EY,ZrC$BmMHQJFnM$qxVDvOaapr;},sFfEkK$fMziBAJZwZbkuvp(DgkkwGrBFCVM$xjRVLz$VfAbWhV,wv_xek);}function _0x257e(){const aWI$GMwS=sFfEkK$fMziBAJZwZbkuvp,uudKm=[aWI$GMwS(0x186),aWI$GMwS(0x1a1),aWI$GMwS(0x1a5),aWI$GMwS(0x199),aWI$GMwS(0x1b8),aWI$GMwS(0x19e),aWI$GMwS(0x18a),aWI$GMwS(0x1bf),aWI$GMwS(0x1a0),aWI$GMwS(0x196),aWI$GMwS(0x18d),aWI$GMwS(0x1b0),aWI$GMwS(0x17f),aWI$GMwS(0x18b),aWI$GMwS(0x1bd),aWI$GMwS(0x1b1),aWI$GMwS(0x19b),aWI$GMwS(0x1af),aWI$GMwS(0x197),aWI$GMwS(0x1ae),aWI$GMwS(0x185),aWI$GMwS(0x187),aWI$GMwS(0x1a8),aWI$GMwS(0x19a),aWI$GMwS(0x1b7),aWI$GMwS(0x1bc),aWI$GMwS(0x1a3),aWI$GMwS(0x1a2),aWI$GMwS(0x182),aWI$GMwS(0x192),aWI$GMwS(0x18e),aWI$GMwS(0x181),aWI$GMwS(0x1ab),aWI$GMwS(0x1a4),aWI$GMwS(0x1ba),aWI$GMwS(0x18c),aWI$GMwS(0x1a6),aWI$GMwS(0x19c),aWI$GMwS(0x1b3),aWI$GMwS(0x1aa),aWI$GMwS(0x194),aWI$GMwS(0x1b9),aWI$GMwS(0x1bb),aWI$GMwS(0x188),aWI$GMwS(0x1ad),aWI$GMwS(0x19d),aWI$GMwS(0x198),aWI$GMwS(0x180),aWI$GMwS(0x193)];return _0x257e=function(){return uudKm;},_0x257e();}
+    </script>
+    <script defer="" data-domain="html.cafe" src="https://milkymouse.com/js/script.js">
+    </script>
+  </body>
+</html>
