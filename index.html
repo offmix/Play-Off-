@@ -65,4 +65,71 @@
 
     <script src="script.js"></script>
 </body>
+</html><!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Off! - ゲームポータル</title>
+    <meta name="description" content="ブラウザで遊べるゲームのポータルサイト。">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="topbar">
+        <div class="topbar-container">
+            <a href="/" class="brand">
+                <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true">
+                    <circle cx="8" cy="8" r="5" fill="currentColor"></circle>
+                    <circle cx="24" cy="8" r="5" fill="currentColor"></circle>
+                    <circle cx="8" cy="24" r="5" fill="currentColor"></circle>
+                    <circle cx="24" cy="24" r="5" fill="currentColor"></circle>
+                </svg>
+                <span>Play Off!</span>
+            </a>
+
+            <div class="search-wrap">
+                <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"></path>
+                </svg>
+                <input type="text" id="searchInput" placeholder="ゲームを検索..." aria-label="ゲーム検索">
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-shell">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h2 class="sidebar-title">カテゴリ</h2>
+                <div class="category-buttons">
+                    <button class="category-btn active" data-genre="all" type="button">すべて</button>
+                    <button class="category-btn" data-genre="action" type="button">アクション</button>
+                    <button class="category-btn" data-genre="racing" type="button">レーシング</button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="hero">
+                <div class="hero-content">
+                    <p class="hero-eyebrow">ブラウザゲーム</p>
+                    <h1 class="hero-title">プレイ開始</h1>
+                    <p class="hero-desc">厳選されたHTMLゲームを楽しもう</p>
+                </div>
+            </div>
+
+            <div class="games-grid" id="gamesGrid"></div>
+
+            <div class="no-results" id="noResults" style="display:none;">
+                <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+                    <circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                    <path d="M21 32h22M32 21v22" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+                <h2>検索結果が見つかりません</h2>
+                <p>別のキーワードで試してみてください</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
