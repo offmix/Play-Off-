@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="jp">
+  <head>
+    <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-L7856P3VNT">
+    </script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag(&#39;js&#39;, new Date());
+
+  gtag(&#39;config&#39;, &#39;G-L7856P3VNT&#39;);
+    </script>
+    <script>
+      // Prevent popup alert dialogs; retain a trace in the browser console.
+        window.alert = (...args) =&gt; console.warn(&#34;Suppressed alert:&#34;, ...args);
+    </script>
+    <base href="https://cdn.jsdelivr.net/gh/freebuisness/assets@51462750d29b68ac1e33887c1bf13d9c478d5ead/198/" />
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>
+      ホーム - Classroom
+    </title>
+    <link rel="shortcut icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPMiIU5F8QnFLsyFCsrCeJNUtk53s79A-6xHHBAcTF9g&amp;s=10" />
+    <link rel="stylesheet" href="TemplateData/style.css" />
+    <style>
+      html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+        }
+
+        #unity-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+    <script src="TemplateData/UnityProgress.js">
+    </script>
+    <script src="Build/UnityLoader.js">
+    </script>
+    <script>
+      function mergeFiles(fileParts) {
+            return new Promise((resolve, reject) =&gt; {
+                let buffers = [];
+
+                function fetchPart(index) {
+                    if (index &gt;= fileParts.length) {
+                        let mergedBlob = new Blob(buffers);
+                        let mergedFileUrl = URL.createObjectURL(mergedBlob);
+                        resolve(mergedFileUrl);
+                        return;
+                    }
+                    fetch(fileParts[index]).then((response) =&gt; response.arrayBuffer()).then((data) =&gt; {
+                        buffers.push(data);
+                        fetchPart(index + 1);
+                    }).catch(reject);
+                }
+                fetchPart(0);
+            });
+        }
+
+        function getParts(file, start, end) {
+            let parts = [];
+            for (let i = start; i &lt;= end; i++) {
+                parts.push(file + &#34;.part&#34; + i);
+            }
+            return parts;
+        }
+
+        window.addEventListener(&#39;resize&#39;, resizeGameContainer);
+
+        function resizeGameContainer() {
+            const container = document.getElementById(&#39;gameContainer&#39;);
+            if (container) {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                container.style.width = `${width}px`;
+                container.style.height = `${height}px`;
+            }
+        }
+
+        window.onload = function () {
+            resizeGameContainer();
+
+            Promise.all([
+                mergeFiles(getParts(&#34;https://cdn.jsdelivr.net/gh/freebuisness/assets@51462750d29b68ac1e33887c1bf13d9c478d5ead/198/Build/WEB1.2.1.data.unityweb&#34;, 1, 2))
+            ]).then(([dataUrl]) =&gt; {
+                let json = {
+                    companyName: &#34;Slope Plus&#34;,
+                    productName: &#34;Slope Plus&#34;,
+                    dataUrl: dataUrl,
+                    wasmCodeUrl: &#34;https://cdn.jsdelivr.net/gh/freebuisness/assets@51462750d29b68ac1e33887c1bf13d9c478d5ead/198/Build/WEB1.2.1.wasm.code.unityweb&#34;,
+                    wasmFrameworkUrl: &#34;https://cdn.jsdelivr.net/gh/freebuisness/assets@51462750d29b68ac1e33887c1bf13d9c478d5ead/198/Build/WEB1.2.1.wasm.framework.unityweb&#34;,
+                    TOTAL_MEMORY: 268435456,
+                    graphicsAPI: [&#34;WebGL 2.0&#34;, &#34;WebGL 1.0&#34;],
+                    webglContextAttributes: {
+                        preserveDrawingBuffer: false
+                    },
+                    splashScreenStyle: &#34;Dark&#34;,
+                    backgroundColor: &#34;#000000&#34;
+                }
+                let blob = new Blob([JSON.stringify(json)], {
+                    type: &#39;application/json&#39;
+                });
+                let blobUrl = URL.createObjectURL(blob);
+                UnityLoader.instantiate(&#34;gameContainer&#34;, json, {
+                    onProgress: UnityProgress,
+                    url: blobUrl
+                });
+            });
+        };
+    </script>
+  </head>
+  <body>
+    <div class="webgl-content">
+      <div id="gameContainer">
+      </div>
+    </div>
+    <script defer="" data-domain="html.cafe" src="https://milkymouse.com/js/script.js">
+    </script>
+  </body>
+</html>
