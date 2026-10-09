@@ -4,7 +4,7 @@ const games = [
     title: 'Brawl Stars',
     genre: 'action',
     path: 'Games/Brawl%20Stars.html',
-    thumb: 'https://supercell.com/images/b524ca49e8549e5d3f5485452da7f26c/cropped.webp'
+    thumb: 'https://www.4gamer.net/games/384/G038494/20181213131/TN/001.jpg'
   },
   {
     id: 2,
@@ -25,35 +25,35 @@ const games = [
     title: 'Madalin Stunt Cars 2',
     genre: 'racing',
     path: 'Games/Madalin%20Stunt%20Cars%202',
-    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTB0sjyv5lYN5yGSaM-7gD4711OK_wRT-_yZVs2E6PSReCppXBk_2IQXvQ&s=10'
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSNO5-ZGXM41qjQ_UwUKrS35OyZrHkyiFTr4rGHHO-HUQ&s=10'
   },
   {
     id: 5,
     title: 'Madalin Stunt Cars 3',
     genre: 'racing',
     path: 'Games/Madalin%20Stunt%20Cars%203.html',
-    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVYrVPOcSvbFDAQq9xmpGQyUSjVdwjtLrpWPC0-bLdLbYtx-DzLYpjxa-P&s=10'
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSllDuVPEWFXX8xdCdDT5u3YfDu7bJacPQMDdrvEcRIMA&s=10'
   },
   {
     id: 6,
     title: 'Real Flight Simulator',
-    genre: 'Simulator',
+    genre: 'racing',
     path: 'Games/RFS.html',
-    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRitjB3E8W0JDsmXv8Y3MDUdSRuKVqbQQG63dGX3mkNNg&s=10
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRitjB3E8W0JDsmXv8Y3MDUdSRuKVqbQQG63dGX3mkNNg&s=10'
   },
   {
     id: 7,
     title: 'Slope',
     genre: 'action',
     path: 'Games/Slope.html',
-    thumb: 'https://g.minigemu.com/slope-3d/slope-3d.jpg'
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQkrvwXmhXpn8cnl3DMr54X1FdOt3qb-g2A3yOh8Pn-xw&s=10'
   },
   {
     id: 8,
     title: 'Survivor.io',
     genre: 'action',
     path: 'Games/Survivor.io.html',
-    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVbVU_PJPur8N4QhfyDP6pzERkgA-b9051cY1smJ2dnG_JWqtZmKk3wxQ0&s=10'
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvuruXdzy2W6gxRCsvJUmSOnqOC--IASAyZFsRmnakQA&s=10'
   }
 ];
 
