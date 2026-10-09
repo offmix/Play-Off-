@@ -4,56 +4,56 @@ const games = [
     title: 'Brawl Stars',
     genre: 'action',
     path: 'Games/Brawl%20Stars.html',
-    thumb: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=900&q=80'
+    thumb: 'https://supercell.com/images/b524ca49e8549e5d3f5485452da7f26c/cropped.webp'
   },
   {
     id: 2,
     title: 'Drift Hunters',
     genre: 'racing',
     path: 'Games/Drift%20Hunters.html',
-    thumb: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=80'
+    thumb: 'https://imgs.crazygames.com/games/drift-hunters/cover-1656950639575.png?metadata=none&quality=100&width=1200&height=630&fit=crop'
   },
   {
     id: 3,
     title: 'Geometry Dash',
     genre: 'action',
     path: 'Games/Geometry%20Dash.html',
-    thumb: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80'
+    thumb: 'https://imgs.crazygames.com/games/geometry-dash-online/cover_16x9-1732744370399.png?metadata=none&quality=60&height=7089'
   },
   {
     id: 4,
     title: 'Madalin Stunt Cars 2',
     genre: 'racing',
     path: 'Games/Madalin%20Stunt%20Cars%202',
-    thumb: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80'
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTB0sjyv5lYN5yGSaM-7gD4711OK_wRT-_yZVs2E6PSReCppXBk_2IQXvQ&s=10'
   },
   {
     id: 5,
     title: 'Madalin Stunt Cars 3',
     genre: 'racing',
     path: 'Games/Madalin%20Stunt%20Cars%203.html',
-    thumb: 'https://images.unsplash.com/photo-1525609004556-c46c7d6cf023?auto=format&fit=crop&w=900&q=80'
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVYrVPOcSvbFDAQq9xmpGQyUSjVdwjtLrpWPC0-bLdLbYtx-DzLYpjxa-P&s=10'
   },
   {
     id: 6,
-    title: 'RFS',
-    genre: 'racing',
+    title: 'Real Flight Simulator',
+    genre: 'Simulator',
     path: 'Games/RFS.html',
-    thumb: 'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=900&q=80'
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRitjB3E8W0JDsmXv8Y3MDUdSRuKVqbQQG63dGX3mkNNg&s=10
   },
   {
     id: 7,
     title: 'Slope',
     genre: 'action',
     path: 'Games/Slope.html',
-    thumb: 'https://images.unsplash.com/photo-1511884642898-4c92249e20b6?auto=format&fit=crop&w=900&q=80'
+    thumb: 'https://g.minigemu.com/slope-3d/slope-3d.jpg'
   },
   {
     id: 8,
     title: 'Survivor.io',
     genre: 'action',
     path: 'Games/Survivor.io.html',
-    thumb: 'https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=900&q=80'
+    thumb: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVbVU_PJPur8N4QhfyDP6pzERkgA-b9051cY1smJ2dnG_JWqtZmKk3wxQ0&s=10'
   }
 ];
 
