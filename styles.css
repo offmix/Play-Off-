@@ -18,15 +18,17 @@
   padding: 0;
 }
 
-html, body {
-  width: 100%;
-  min-height: 100%;
-  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 40%);
-  color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+html {
+  height: 100%;
 }
 
 body {
+  width: 100%;
+  min-height: 100%;
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 40%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
 }
 
@@ -118,6 +120,13 @@ body {
   padding: 32px 24px;
   max-width: 1600px;
   margin: 0 auto;
+  width: 100%;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .sidebar-section {
@@ -125,6 +134,8 @@ body {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 20px;
+  position: sticky;
+  top: 80px;
 }
 
 .sidebar-title {
@@ -348,26 +359,51 @@ body {
     gap: 24px;
     padding: 24px 16px;
   }
+
+  .sidebar-section {
+    top: 70px;
+  }
 }
 
 @media (max-width: 900px) {
   .page-shell {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
 
   .sidebar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    order: -1;
   }
 
   .sidebar-section {
-    padding: 16px;
+    position: static;
+    padding: 14px;
+  }
+
+  .sidebar-title {
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+  }
+
+  .category-buttons {
+    gap: 6px;
+  }
+
+  .category-btn {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
 
   .hero {
     padding: 32px 20px;
     min-height: 160px;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
   }
 
   .games-grid {
@@ -380,6 +416,7 @@ body {
   .topbar-container {
     flex-direction: column;
     gap: 12px;
+    padding: 0 12px;
   }
 
   .search-wrap {
@@ -388,20 +425,64 @@ body {
 
   .page-shell {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
     padding: 16px 12px;
+  }
+
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar-section {
+    padding: 12px;
   }
 
   .hero {
     padding: 24px 16px;
+    min-height: auto;
   }
 
   .hero-title {
     font-size: 2rem;
   }
 
+  .hero-desc {
+    font-size: 0.95rem;
+  }
+
   .games-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
+  }
+
+  .game-thumbnail {
+    height: 140px;
+  }
+
+  .game-thumbnail svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .game-title {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-shell {
+    padding: 12px 8px;
+  }
+
+  .games-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .sidebar-section {
+    padding: 10px;
   }
 }
